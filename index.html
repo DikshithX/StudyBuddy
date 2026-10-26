@@ -1,0 +1,438 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StudyBuddy | Student Planner</title>
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            navy: "#0b1020",
+            panel: "#151c30",
+            purple: "#a78bfa"
+          }
+        }
+      }
+    };
+  </script>
+
+  <style>
+    body {
+      background: #0b1020;
+      color: #f1f5f9;
+      font-family: Inter, system-ui, sans-serif;
+    }
+    input, select {
+      color: #f1f5f9;
+      background: #0b1020;
+      border: 1px solid #374151;
+      border-radius: 10px;
+      padding: 11px;
+      width: 100%;
+      outline: none;
+    }
+    input:focus, select:focus {
+      border-color: #a78bfa;
+    }
+    input[type="date"] { color-scheme: dark; }
+    button { transition: 0.2s; }
+    .task-row { border-bottom: 1px solid #293247; }
+  </style>
+</head>
+
+<body class="min-h-screen">
+
+  <div class="min-h-screen md:flex">
+
+    <!-- Sidebar -->
+    <aside class="md:w-64 bg-panel p-6 md:min-h-screen">
+      <div class="flex items-center gap-3 mb-8">
+        <div class="bg-purple-400 text-slate-950 rounded-xl p-3 font-black">S</div>
+        <div>
+          <h1 class="text-xl font-bold">StudyBuddy</h1>
+          <p class="text-xs text-slate-400">Your study companion</p>
+        </div>
+      </div>
+
+      <p class="text-xs uppercase tracking-widest text-slate-500 mb-3">
+        Workspace
+      </p>
+
+      <a href="#dashboard"
+         class="block bg-purple-500/15 text-purple-300 rounded-xl p-3 mb-2">
+        🏠 Dashboard
+      </a>
+      <a href="#add-task"
+         class="block text-slate-300 hover:bg-slate-700 rounded-xl p-3 mb-2">
+        ➕ Add a task
+      </a>
+      <a href="#task-list"
+         class="block text-slate-300 hover:bg-slate-700 rounded-xl p-3">
+        📚 My tasks
+      </a>
+
+      <div class="mt-10 p-4 rounded-xl bg-slate-800/70">
+        <p class="font-semibold text-purple-300">Small steps matter!</p>
+        <p class="text-sm text-slate-400 mt-2">
+          Complete one task at a time. Your progress adds up.
+        </p>
+      </div>
+
+      <p class="text-xs text-slate-500 mt-8">
+        StudyBuddy prototype · Data stays in this browser
+      </p>
+    </aside>
+
+    <!-- Main content -->
+    <main class="flex-1 p-5 md:p-10" id="dashboard">
+
+      <header class="flex flex-wrap justify-between items-center gap-4 mb-8">
+        <div>
+          <p class="text-purple-300 text-sm">YOUR PERSONAL STUDY SPACE</p>
+          <h2 class="text-3xl md:text-4xl font-bold mt-2">
+            Let's get things done.
+          </h2>
+          <p class="text-slate-400 mt-2">
+            Organize your tasks. Track your progress. Reach your goals.
+          </p>
+        </div>
+        <button onclick="focusTaskForm()"
+          class="bg-purple-500 hover:bg-purple-400 text-slate-950 font-bold px-5 py-3 rounded-xl">
+          + New task
+        </button>
+      </header>
+
+      <!-- Summary cards -->
+      <section class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+        <div class="bg-panel border border-slate-800 rounded-2xl p-5">
+          <p class="text-slate-400 text-sm">Total tasks</p>
+          <p id="total-count" class="text-4xl font-bold mt-3">0</p>
+          <p class="text-slate-500 text-sm mt-2">All your study tasks</p>
+        </div>
+
+        <div class="bg-panel border border-slate-800 rounded-2xl p-5">
+          <p class="text-slate-400 text-sm">Completed</p>
+          <p id="completed-count" class="text-4xl font-bold text-emerald-400 mt-3">0</p>
+          <p class="text-slate-500 text-sm mt-2">Tasks you've finished</p>
+        </div>
+
+        <div class="bg-panel border border-slate-800 rounded-2xl p-5">
+          <p class="text-slate-400 text-sm">Pending</p>
+          <p id="pending-count" class="text-4xl font-bold text-amber-300 mt-3">0</p>
+          <p class="text-slate-500 text-sm mt-2">Tasks left to complete</p>
+        </div>
+      </section>
+
+      <!-- Add task form -->
+      <section id="add-task" class="bg-panel border border-slate-800 rounded-2xl p-6 mb-8">
+        <h3 class="text-xl font-bold">Create a study task</h3>
+        <p class="text-slate-400 text-sm mt-1 mb-5">
+          Add an assignment, revision session, or exam reminder.
+        </p>
+
+        <form id="task-form" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label for="task-title" class="block text-sm mb-2">Task title *</label>
+            <input id="task-title" type="text" maxlength="120"
+              placeholder="e.g. Revise Laplace transforms" required>
+          </div>
+
+          <div>
+            <label for="task-subject" class="block text-sm mb-2">Subject</label>
+            <input id="task-subject" type="text" maxlength="60"
+              placeholder="e.g. Engineering Mathematics">
+          </div>
+
+          <div>
+            <label for="task-date" class="block text-sm mb-2">Due date</label>
+            <input id="task-date" type="date">
+          </div>
+
+          <div class="flex items-end">
+            <button type="submit"
+              class="w-full bg-purple-500 hover:bg-purple-400 text-slate-950 font-bold p-3 rounded-xl">
+              Add task
+            </button>
+          </div>
+        </form>
+        <p id="form-message" role="status" class="text-sm mt-3"></p>
+      </section>
+
+      <!-- Task list -->
+      <section id="task-list" class="bg-panel border border-slate-800 rounded-2xl p-6">
+        <div class="flex flex-wrap justify-between items-center gap-4 mb-5">
+          <div>
+            <h3 class="text-xl font-bold">My study tasks</h3>
+            <p class="text-slate-400 text-sm mt-1">Manage your workload here.</p>
+          </div>
+
+          <select id="task-filter" aria-label="Filter tasks" class="w-auto">
+            <option value="all">All tasks</option>
+            <option value="pending">Pending</option>
+            <option value="completed">Completed</option>
+          </select>
+        </div>
+
+        <div id="task-container"></div>
+
+        <div class="mt-5">
+          <div class="flex justify-between text-sm mb-2">
+            <span class="text-slate-400">Overall progress</span>
+            <span id="progress-label">0%</span>
+          </div>
+          <div class="h-2 bg-slate-800 rounded-full overflow-hidden">
+            <div id="progress-bar"
+              class="h-full bg-purple-400 rounded-full"
+              style="width: 0%"></div>
+          </div>
+        </div>
+      </section>
+
+      <footer class="text-center text-slate-500 text-xs mt-8">
+        StudyBuddy · Built for students, one task at a time.
+      </footer>
+
+    </main>
+  </div>
+
+  <script>
+    // Sample tasks are shown only when no saved tasks exist.
+    const sampleTasks = [
+      {
+        id: 1,
+        title: "Revise Laplace transforms",
+        subject: "Engineering Mathematics",
+        dueDate: "",
+        completed: false
+      },
+      {
+        id: 2,
+        title: "Complete digital electronics notes",
+        subject: "Digital Electronics",
+        dueDate: "",
+        completed: false
+      },
+      {
+        id: 3,
+        title: "Practice KCL and KVL problems",
+        subject: "Network Analysis",
+        dueDate: "",
+        completed: true
+      }
+    ];
+
+    // Load saved tasks from localStorage, or use the sample tasks.
+    function loadTasks() {
+      try {
+        const savedTasks = localStorage.getItem("studybuddy-tasks");
+        if (savedTasks !== null) {
+          const parsedTasks = JSON.parse(savedTasks);
+          if (Array.isArray(parsedTasks)) return parsedTasks;
+        }
+      } catch (error) {
+        console.error("Could not load saved tasks:", error);
+      }
+
+      return sampleTasks.map(task => ({ ...task }));
+    }
+
+    let tasks = loadTasks();
+
+    // Save tasks so they remain after a page refresh.
+    function saveTasks() {
+      try {
+        localStorage.setItem("studybuddy-tasks", JSON.stringify(tasks));
+        return true;
+      } catch (error) {
+        console.error("Could not save tasks:", error);
+        showMessage("Could not save data in this browser.", true);
+        return false;
+      }
+    }
+
+    // Display a short message below the form.
+    function showMessage(message, isError = false) {
+      const messageElement = document.getElementById("form-message");
+      messageElement.textContent = message;
+      messageElement.className = isError
+        ? "text-sm mt-3 text-red-400"
+        : "text-sm mt-3 text-emerald-400";
+    }
+
+    // Format the date for easier reading.
+    function formatDate(dateString) {
+      if (!dateString) return "No due date";
+
+      const parts = dateString.split("-");
+      if (parts.length !== 3) return "No due date";
+
+      return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    }
+
+    // Update the summary cards and progress bar.
+    function renderSummary() {
+      const completed = tasks.filter(task => task.completed).length;
+      const pending = tasks.length - completed;
+      const percentage = tasks.length
+        ? Math.round((completed / tasks.length) * 100)
+        : 0;
+
+      document.getElementById("total-count").textContent = tasks.length;
+      document.getElementById("completed-count").textContent = completed;
+      document.getElementById("pending-count").textContent = pending;
+      document.getElementById("progress-label").textContent = percentage + "%";
+      document.getElementById("progress-bar").style.width = percentage + "%";
+    }
+
+    // Display the tasks based on the selected filter.
+    function renderTasks() {
+      const container = document.getElementById("task-container");
+      const filter = document.getElementById("task-filter").value;
+
+      const visibleTasks = tasks.filter(task => {
+        if (filter === "pending") return !task.completed;
+        if (filter === "completed") return task.completed;
+        return true;
+      });
+
+      container.replaceChildren();
+
+      if (visibleTasks.length === 0) {
+        const emptyMessage = document.createElement("p");
+        emptyMessage.className = "text-slate-400 py-8 text-center";
+        emptyMessage.textContent = "No tasks here yet. Add a task to get started!";
+        container.appendChild(emptyMessage);
+        return;
+      }
+
+      visibleTasks.forEach(task => {
+        const row = document.createElement("div");
+        row.className = "task-row py-4 flex flex-wrap items-center gap-3";
+
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.checked = task.completed;
+        checkbox.className = "!w-5 !h-5 accent-violet-400 cursor-pointer";
+        checkbox.setAttribute("aria-label", "Mark task completed");
+        checkbox.addEventListener("change", () => toggleTask(task.id));
+
+        const details = document.createElement("div");
+        details.className = "flex-1 min-w-40";
+
+        const title = document.createElement("p");
+        title.className = task.completed
+          ? "font-semibold text-slate-500 line-through"
+          : "font-semibold";
+        title.textContent = task.title;
+
+        const metadata = document.createElement("p");
+        metadata.className = "text-sm text-slate-400 mt-1";
+        metadata.textContent =
+          (task.subject || "General") + " · Due: " + formatDate(task.dueDate);
+
+        details.append(title, metadata);
+
+        const status = document.createElement("span");
+        status.className = task.completed
+          ? "text-emerald-300 bg-emerald-400/10 px-3 py-1 rounded-full text-xs"
+          : "text-amber-200 bg-amber-300/10 px-3 py-1 rounded-full text-xs";
+        status.textContent = task.completed ? "Completed" : "Pending";
+
+        const deleteButton = document.createElement("button");
+        deleteButton.type = "button";
+        deleteButton.className =
+          "text-red-300 hover:bg-red-400/10 rounded-lg px-3 py-2 text-sm";
+        deleteButton.textContent = "Delete";
+        deleteButton.setAttribute("aria-label", "Delete " + task.title);
+        deleteButton.addEventListener("click", () => deleteTask(task.id));
+
+        row.append(checkbox, details, status, deleteButton);
+        container.appendChild(row);
+      });
+    }
+
+    // Refresh every part of the dashboard.
+    function renderApp() {
+      renderSummary();
+      renderTasks();
+    }
+
+    // Add a new task after validating the title.
+    document.getElementById("task-form").addEventListener("submit", event => {
+      event.preventDefault();
+
+      const titleInput = document.getElementById("task-title");
+      const subjectInput = document.getElementById("task-subject");
+      const dateInput = document.getElementById("task-date");
+      const title = titleInput.value.trim();
+
+      if (!title) {
+        showMessage("Please enter a task title.", true);
+        titleInput.focus();
+        return;
+      }
+
+      const newTask = {
+        id: Date.now(),
+        title,
+        subject: subjectInput.value.trim(),
+        dueDate: dateInput.value,
+        completed: false
+      };
+
+      tasks.unshift(newTask);
+      saveTasks();
+      renderApp();
+
+      event.target.reset();
+      showMessage("Task added successfully!");
+      titleInput.focus();
+    });
+
+    // Switch a task between pending and completed.
+    function toggleTask(taskId) {
+      tasks = tasks.map(task =>
+        task.id === taskId
+          ? { ...task, completed: !task.completed }
+          : task
+      );
+
+      saveTasks();
+      renderApp();
+    }
+
+    // Delete a task after confirmation.
+    function deleteTask(taskId) {
+      const task = tasks.find(item => item.id === taskId);
+      if (!task) return;
+
+      if (!confirm(`Delete "${task.title}"?`)) return;
+
+      tasks = tasks.filter(item => item.id !== taskId);
+      saveTasks();
+      renderApp();
+      showMessage("Task deleted.");
+    }
+
+    // Let the New Task button jump to the form.
+    function focusTaskForm() {
+      document.getElementById("add-task").scrollIntoView({
+        behavior: "smooth"
+      });
+      document.getElementById("task-title").focus({ preventScroll: true });
+    }
+
+    document.getElementById("task-filter").addEventListener("change", renderTasks);
+
+    // Show the initial dashboard.
+    renderApp();
+  </script>
+</body>
+</html>

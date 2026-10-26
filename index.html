@@ -2,437 +2,948 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>StudyBuddy | Student Planner</title>
-
-  <!-- Tailwind CSS -->
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>StudyBuddy — Your student space</title>
   <script src="https://cdn.tailwindcss.com"></script>
-
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            navy: "#0b1020",
-            panel: "#151c30",
-            purple: "#a78bfa"
-          }
-        }
-      }
-    };
-  </script>
-
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase-config.js"></script>
   <style>
-    body {
-      background: #0b1020;
-      color: #f1f5f9;
-      font-family: Inter, system-ui, sans-serif;
+    :root { color-scheme: dark; }
+    body { background:#090811; color:#f5f3ff; font-family:Inter,ui-sans-serif,system-ui,sans-serif; }
+    .glass { background:rgba(25,22,43,.88); border:1px solid rgba(167,139,250,.14); }
+    .muted { color:#a5a0bb; }
+    .field { width:100%; background:#100e1c; border:1px solid #302a46; border-radius:12px; padding:11px 12px; color:#f5f3ff; outline:none; }
+    .field:focus { border-color:#a78bfa; box-shadow:0 0 0 3px rgba(167,139,250,.12); }
+    .btn { border-radius:12px; padding:10px 14px; font-weight:650; transition:.15s; }
+    .btn-primary { background:#8b5cf6; color:white; }
+    .btn-primary:hover { background:#7c3aed; }
+    .btn-secondary { background:#211b35; color:#e9ddff; border:1px solid #3b3154; }
+    .navbtn { display:flex; align-items:center; gap:12px; width:100%; padding:11px 12px; border-radius:12px; color:#aaa4bf; text-align:left; }
+    .navbtn.active,.navbtn:hover { background:#251b3e; color:#fff; }
+    .pill { border:1px solid #39314d; border-radius:999px; padding:6px 10px; color:#bcb5d0; font-size:12px; }
+    .pill.active { background:#38245c; border-color:#7951b7; color:#fff; }
+    .taskrow { border:1px solid #2b263d; background:#151222; border-radius:14px; padding:13px; }
+    .statnum { font-size:clamp(1.5rem,3vw,2.2rem); font-weight:750; letter-spacing:-.04em; }
+    .daycol { min-height:150px; background:#100e1b; border:1px solid #282239; border-radius:12px; padding:9px; }
+    .session { border-left:3px solid #a78bfa; background:#211a35; border-radius:8px; padding:7px; font-size:12px; margin-top:7px; }
+    .hidden { display:none !important; }
+    .overlay { background:radial-gradient(circle at top right,#312052 0,transparent 38%),#090811; }
+    .ring { background:conic-gradient(#a78bfa var(--progress),#2c2540 0); }
+
+    @media(max-width:900px) {
+      #sidebar { position:static; width:100%; }
+      #layout { display:block; }
+      #sidebar nav { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); }
+      .navbtn { font-size:12px; padding:8px; }
     }
-    input, select {
-      color: #f1f5f9;
-      background: #0b1020;
-      border: 1px solid #374151;
-      border-radius: 10px;
-      padding: 11px;
-      width: 100%;
-      outline: none;
+
+    /* Light theme */
+    body.light-theme {
+      background:#f5f3ff;
+      color:#211a35;
+      color-scheme:light;
     }
-    input:focus, select:focus {
-      border-color: #a78bfa;
+    body.light-theme .glass {
+      background:#fff;
+      border-color:#e2d9f3;
     }
-    input[type="date"] { color-scheme: dark; }
-    button { transition: 0.2s; }
-    .task-row { border-bottom: 1px solid #293247; }
+    body.light-theme .field {
+      background:#fff;
+      color:#211a35;
+      border-color:#d6cce8;
+    }
+    body.light-theme .field:focus { border-color:#8b5cf6; }
+    body.light-theme .field option {
+      background:#fff;
+      color:#211a35;
+    }
+    body.light-theme .muted { color:#6b6480; }
+    body.light-theme .navbtn { color:#625875; }
+    body.light-theme .navbtn.active,
+    body.light-theme .navbtn:hover {
+      background:#eee7ff;
+      color:#6d28d9;
+    }
+    body.light-theme .taskrow {
+      background:#faf9ff;
+      border-color:#e2d9f3;
+    }
+    body.light-theme .daycol {
+      background:#faf9ff;
+      border-color:#e2d9f3;
+    }
+    body.light-theme .session {
+      background:#f0eaff;
+      color:#30234a;
+    }
+    body.light-theme .btn-secondary {
+      background:#eee7ff;
+      color:#5b21b6;
+      border-color:#d8c8fa;
+    }
+    body.light-theme .bg-slate-800 { background-color:#e5e0ef; }
+    body.light-theme .bg-violet-950\/50 { background-color:#f0eaff; }
+    body.light-theme .text-slate-500 { color:#81778f; }
+    body.light-theme .border-white\/5,
+    body.light-theme .border-white\/10 {
+      border-color:#e2d9f3;
+    }
+    body.light-theme .overlay,
+    body.light-theme #authScreen {
+      background:radial-gradient(circle at top right,#e9ddff,transparent 45%),#f5f3ff !important;
+    }
+    body.light-theme .bg-\[\#19162b\] { background-color:#e9e2f5; }
+    body.light-theme .ring {
+      background:conic-gradient(#8b5cf6 var(--progress),#e2d9f3 0);
+    }
   </style>
 </head>
+<body>
 
-<body class="min-h-screen">
-
-  <div class="min-h-screen md:flex">
-
-    <!-- Sidebar -->
-    <aside class="md:w-64 bg-panel p-6 md:min-h-screen">
-      <div class="flex items-center gap-3 mb-8">
-        <div class="bg-purple-400 text-slate-950 rounded-xl p-3 font-black">S</div>
-        <div>
-          <h1 class="text-xl font-bold">StudyBuddy</h1>
-          <p class="text-xs text-slate-400">Your study companion</p>
+  <!-- LOGIN / SIGNUP -->
+  <section id="authScreen" class="overlay min-h-screen flex items-center justify-center p-5">
+    <div class="w-full max-w-5xl grid md:grid-cols-2 gap-8 items-center">
+      <div class="hidden md:block p-8">
+        <div class="flex items-center gap-3 mb-8">
+          <div class="w-12 h-12 rounded-2xl bg-violet-500 flex items-center justify-center text-2xl">✦</div>
+          <div>
+            <div class="text-2xl font-bold">StudyBuddy</div>
+            <div class="text-sm muted">Make your time count.</div>
+          </div>
+        </div>
+        <div class="text-5xl font-extrabold leading-tight mb-5">
+          Your goals.<br><span class="text-violet-300">Your schedule.</span><br>Your progress.
+        </div>
+        <p class="muted text-lg max-w-md">
+          A personal study space to organize classes, plan focused sessions, and stay on top of every deadline.
+        </p>
+        <div class="grid grid-cols-3 gap-3 mt-8">
+          <div class="glass rounded-2xl p-4"><div class="text-2xl">📅</div><div class="font-semibold mt-2">Timetable</div><div class="text-xs muted">Classes & sessions</div></div>
+          <div class="glass rounded-2xl p-4"><div class="text-2xl">🎯</div><div class="font-semibold mt-2">Goals</div><div class="text-xs muted">One step at a time</div></div>
+          <div class="glass rounded-2xl p-4"><div class="text-2xl">🔔</div><div class="font-semibold mt-2">Reminders</div><div class="text-xs muted">Stay prepared</div></div>
         </div>
       </div>
 
-      <p class="text-xs uppercase tracking-widest text-slate-500 mb-3">
-        Workspace
-      </p>
-
-      <a href="#dashboard"
-         class="block bg-purple-500/15 text-purple-300 rounded-xl p-3 mb-2">
-        🏠 Dashboard
-      </a>
-      <a href="#add-task"
-         class="block text-slate-300 hover:bg-slate-700 rounded-xl p-3 mb-2">
-        ➕ Add a task
-      </a>
-      <a href="#task-list"
-         class="block text-slate-300 hover:bg-slate-700 rounded-xl p-3">
-        📚 My tasks
-      </a>
-
-      <div class="mt-10 p-4 rounded-xl bg-slate-800/70">
-        <p class="font-semibold text-purple-300">Small steps matter!</p>
-        <p class="text-sm text-slate-400 mt-2">
-          Complete one task at a time. Your progress adds up.
-        </p>
-      </div>
-
-      <p class="text-xs text-slate-500 mt-8">
-        StudyBuddy prototype · Data stays in this browser
-      </p>
-    </aside>
-
-    <!-- Main content -->
-    <main class="flex-1 p-5 md:p-10" id="dashboard">
-
-      <header class="flex flex-wrap justify-between items-center gap-4 mb-8">
-        <div>
-          <p class="text-purple-300 text-sm">YOUR PERSONAL STUDY SPACE</p>
-          <h2 class="text-3xl md:text-4xl font-bold mt-2">
-            Let's get things done.
-          </h2>
-          <p class="text-slate-400 mt-2">
-            Organize your tasks. Track your progress. Reach your goals.
-          </p>
+      <div class="glass rounded-3xl p-7 md:p-9 shadow-2xl">
+        <div class="flex items-center gap-3 mb-7 md:hidden">
+          <div class="w-10 h-10 rounded-xl bg-violet-500 flex items-center justify-center">✦</div>
+          <div class="text-xl font-bold">StudyBuddy</div>
         </div>
-        <button onclick="focusTaskForm()"
-          class="bg-purple-500 hover:bg-purple-400 text-slate-950 font-bold px-5 py-3 rounded-xl">
-          + New task
-        </button>
-      </header>
-
-      <!-- Summary cards -->
-      <section class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-        <div class="bg-panel border border-slate-800 rounded-2xl p-5">
-          <p class="text-slate-400 text-sm">Total tasks</p>
-          <p id="total-count" class="text-4xl font-bold mt-3">0</p>
-          <p class="text-slate-500 text-sm mt-2">All your study tasks</p>
+        <div class="flex gap-2 p-1 rounded-xl bg-black/20 mb-6">
+          <button id="loginTab" class="btn btn-primary flex-1" type="button">Log in</button>
+          <button id="signupTab" class="btn btn-secondary flex-1" type="button">Create account</button>
         </div>
-
-        <div class="bg-panel border border-slate-800 rounded-2xl p-5">
-          <p class="text-slate-400 text-sm">Completed</p>
-          <p id="completed-count" class="text-4xl font-bold text-emerald-400 mt-3">0</p>
-          <p class="text-slate-500 text-sm mt-2">Tasks you've finished</p>
-        </div>
-
-        <div class="bg-panel border border-slate-800 rounded-2xl p-5">
-          <p class="text-slate-400 text-sm">Pending</p>
-          <p id="pending-count" class="text-4xl font-bold text-amber-300 mt-3">0</p>
-          <p class="text-slate-500 text-sm mt-2">Tasks left to complete</p>
-        </div>
-      </section>
-
-      <!-- Add task form -->
-      <section id="add-task" class="bg-panel border border-slate-800 rounded-2xl p-6 mb-8">
-        <h3 class="text-xl font-bold">Create a study task</h3>
-        <p class="text-slate-400 text-sm mt-1 mb-5">
-          Add an assignment, revision session, or exam reminder.
-        </p>
-
-        <form id="task-form" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <h1 id="authTitle" class="text-3xl font-bold">Welcome back</h1>
+        <p id="authSubtitle" class="muted mt-2 mb-6">Log in to open your personal study space.</p>
+        <form id="authForm" class="space-y-4">
+          <div id="nameWrap" class="hidden">
+            <label class="text-sm muted block mb-2" for="displayName">Your name</label>
+            <input id="displayName" class="field" placeholder="e.g. Alex" autocomplete="name" />
+          </div>
           <div>
-            <label for="task-title" class="block text-sm mb-2">Task title *</label>
-            <input id="task-title" type="text" maxlength="120"
-              placeholder="e.g. Revise Laplace transforms" required>
+            <label class="text-sm muted block mb-2" for="email">Email address</label>
+            <input id="email" class="field" type="email" required placeholder="you@example.com" autocomplete="email" />
           </div>
-
           <div>
-            <label for="task-subject" class="block text-sm mb-2">Subject</label>
-            <input id="task-subject" type="text" maxlength="60"
-              placeholder="e.g. Engineering Mathematics">
+            <label class="text-sm muted block mb-2" for="password">Password</label>
+            <input id="password" class="field" type="password" required minlength="6" placeholder="At least 6 characters" autocomplete="current-password" />
           </div>
-
-          <div>
-            <label for="task-date" class="block text-sm mb-2">Due date</label>
-            <input id="task-date" type="date">
-          </div>
-
-          <div class="flex items-end">
-            <button type="submit"
-              class="w-full bg-purple-500 hover:bg-purple-400 text-slate-950 font-bold p-3 rounded-xl">
-              Add task
-            </button>
-          </div>
+          <button id="authSubmit" class="btn btn-primary w-full py-3" type="submit">Log in to StudyBuddy</button>
+          <p id="authMessage" class="text-sm muted min-h-5" role="status"></p>
         </form>
-        <p id="form-message" role="status" class="text-sm mt-3"></p>
-      </section>
+        <p class="text-xs muted mt-5">Your account data is private when the database SQL setup and Row Level Security policies are applied.</p>
+      </div>
+    </div>
+  </section>
 
-      <!-- Task list -->
-      <section id="task-list" class="bg-panel border border-slate-800 rounded-2xl p-6">
-        <div class="flex flex-wrap justify-between items-center gap-4 mb-5">
+  <!-- APP -->
+  <div id="appScreen" class="hidden min-h-screen">
+    <div id="layout" class="max-w-[1600px] mx-auto flex min-h-screen">
+      <aside id="sidebar" class="w-64 shrink-0 border-r border-white/5 p-5">
+        <div class="flex items-center gap-3 px-2 py-3 mb-7">
+          <div class="w-10 h-10 rounded-xl bg-violet-500 flex items-center justify-center text-xl">✦</div>
+          <div><div class="font-bold text-lg">StudyBuddy</div><div class="text-xs muted">Student workspace</div></div>
+        </div>
+        <div class="text-[10px] muted uppercase tracking-[.2em] px-3 mb-2">Workspace</div>
+        <nav class="space-y-1 mb-7">
+          <button class="navbtn active" data-view="dashboard"><span>◫</span> Dashboard</button>
+          <button class="navbtn" data-view="academics"><span>▤</span> Academics & tasks</button>
+          <button class="navbtn" data-view="timetable"><span>▦</span> Timetable</button>
+          <button class="navbtn" data-view="planner"><span>◷</span> Study planner</button>
+          <button class="navbtn" data-view="reminders"><span>♧</span> Reminders</button>
+          <button class="navbtn" data-view="productivity"><span>✧</span> Productivity</button>
+        </nav>
+        <div class="glass rounded-2xl p-4 mb-4">
+          <div class="text-sm font-semibold">Focus on progress</div>
+          <p class="text-xs muted mt-2">Small focused sessions add up.</p>
+          <div class="h-1.5 rounded-full bg-white/10 mt-4 overflow-hidden"><div id="sidebarProgress" class="h-full bg-violet-400 rounded-full" style="width:0%"></div></div>
+          <div id="sidebarProgressText" class="text-xs muted mt-2">0% tasks completed</div>
+        </div>
+        <div class="border-t border-white/10 pt-4 mt-5 flex items-center gap-3">
+          <div class="w-10 h-10 rounded-full bg-violet-900 flex items-center justify-center">👤</div>
+          <div class="min-w-0 flex-1">
+            <div id="userName" class="text-sm font-semibold truncate">Student</div>
+            <div id="userEmail" class="text-xs muted truncate"></div>
+          </div>
+          <button id="logoutBtn" class="text-xs muted hover:text-white" title="Log out">↪</button>
+        </div>
+      </aside>
+
+      <main class="flex-1 min-w-0 p-4 md:p-8">
+        <header class="flex flex-wrap items-center justify-between gap-4 mb-8">
           <div>
-            <h3 class="text-xl font-bold">My study tasks</h3>
-            <p class="text-slate-400 text-sm mt-1">Manage your workload here.</p>
+            <div id="dateLabel" class="text-xs muted uppercase tracking-widest"></div>
+            <h1 id="pageTitle" class="text-3xl md:text-4xl font-bold mt-2">Your dashboard</h1>
+            <p id="pageSubtitle" class="muted mt-2">A clear view of your study week.</p>
           </div>
-
-          <select id="task-filter" aria-label="Filter tasks" class="w-auto">
-            <option value="all">All tasks</option>
-            <option value="pending">Pending</option>
-            <option value="completed">Completed</option>
-          </select>
-        </div>
-
-        <div id="task-container"></div>
-
-        <div class="mt-5">
-          <div class="flex justify-between text-sm mb-2">
-            <span class="text-slate-400">Overall progress</span>
-            <span id="progress-label">0%</span>
+          <div class="flex items-center gap-2">
+            <button id="themeBtn" class="btn btn-secondary text-sm" type="button">☀️ Light mode</button>
+            <button id="notifyBtn" class="btn btn-secondary text-sm">♧ Enable reminders</button>
+            <div class="w-10 h-10 rounded-full bg-violet-900 flex items-center justify-center">✦</div>
           </div>
-          <div class="h-2 bg-slate-800 rounded-full overflow-hidden">
-            <div id="progress-bar"
-              class="h-full bg-purple-400 rounded-full"
-              style="width: 0%"></div>
+        </header>
+
+        <!-- DASHBOARD -->
+        <section id="view-dashboard" class="view space-y-6">
+          <div class="grid sm:grid-cols-2 xl:grid-cols-4 gap-4">
+            <div class="glass rounded-2xl p-5"><div class="muted text-sm">Tasks completed</div><div id="statCompleted" class="statnum mt-3">0/0</div><div class="text-xs text-emerald-300 mt-2">Keep your streak going</div></div>
+            <div class="glass rounded-2xl p-5"><div class="muted text-sm">Open tasks</div><div id="statOpen" class="statnum mt-3">0</div><div class="text-xs muted mt-2">Your next steps</div></div>
+            <div class="glass rounded-2xl p-5"><div class="muted text-sm">Scheduled sessions</div><div id="statSessions" class="statnum mt-3">0</div><div class="text-xs muted mt-2">Classes and study blocks</div></div>
+            <div class="glass rounded-2xl p-5">
+              <div class="muted text-sm">Completion</div>
+              <div class="flex items-center gap-4 mt-2">
+                <div id="progressRing" class="ring w-16 h-16 rounded-full flex items-center justify-center" style="--progress:0deg">
+                  <div class="w-12 h-12 rounded-full bg-[#19162b] flex items-center justify-center text-sm font-bold" id="progressPct">0%</div>
+                </div>
+                <div class="text-sm muted">Every task<br>moves you forward.</div>
+              </div>
+            </div>
           </div>
-        </div>
-      </section>
+          <div class="grid xl:grid-cols-[1.5fr_1fr] gap-5">
+            <div class="glass rounded-2xl p-5 md:p-6">
+              <div class="flex justify-between items-center gap-3 mb-5">
+                <div><h2 class="text-lg font-bold">This week</h2><p class="text-sm muted">Your personal timetable</p></div>
+                <button class="btn btn-secondary text-sm" data-goto="timetable">Manage schedule ↗</button>
+              </div>
+              <div id="weekPreview" class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2"></div>
+            </div>
+            <div class="glass rounded-2xl p-5 md:p-6">
+              <div class="flex justify-between items-center mb-5">
+                <div><h2 class="text-lg font-bold">Upcoming tasks</h2><p class="text-sm muted">What needs your attention</p></div>
+                <button class="btn btn-secondary text-sm" data-goto="academics">View all</button>
+              </div>
+              <div id="upcomingTasks" class="space-y-3"></div>
+            </div>
+          </div>
+          <div class="glass rounded-2xl p-5 md:p-6">
+            <div class="flex justify-between items-center gap-3 mb-4">
+              <div><h2 class="text-lg font-bold">Quick actions</h2><p class="text-sm muted">Jump into your next step</p></div>
+            </div>
+            <div class="grid sm:grid-cols-3 gap-3">
+              <button class="taskrow text-left hover:border-violet-400" data-goto="academics"><div class="text-2xl mb-2">＋</div><div class="font-semibold">Add a task</div><div class="text-xs muted mt-1">Track assignments and deadlines</div></button>
+              <button class="taskrow text-left hover:border-violet-400" data-goto="timetable"><div class="text-2xl mb-2">▦</div><div class="font-semibold">Add a class</div><div class="text-xs muted mt-1">Build your weekly timetable</div></button>
+              <button class="taskrow text-left hover:border-violet-400" data-goto="planner"><div class="text-2xl mb-2">◷</div><div class="font-semibold">Plan study time</div><div class="text-xs muted mt-1">Make room for focused learning</div></button>
+            </div>
+          </div>
+        </section>
 
-      <footer class="text-center text-slate-500 text-xs mt-8">
-        StudyBuddy · Built for students, one task at a time.
-      </footer>
+        <!-- ACADEMICS & TASKS -->
+        <section id="view-academics" class="view hidden space-y-5">
+          <div class="glass rounded-2xl p-5 md:p-6">
+            <h2 class="text-xl font-bold">Add a task</h2>
+            <p class="muted text-sm mt-1 mb-5">Assignments, exams, projects, and everything you need to remember.</p>
+            <form id="taskForm" class="grid md:grid-cols-2 xl:grid-cols-3 gap-3">
+              <input id="taskTitle" class="field" required placeholder="Task title" />
+              <input id="taskSubject" class="field" required placeholder="Subject (e.g. Maths)" />
+              <input id="taskDue" class="field" type="date" required />
+              <select id="taskPriority" class="field"><option value="Medium">Medium priority</option><option value="High">High priority</option><option value="Low">Low priority</option></select>
+              <select id="taskType" class="field"><option>Assignment</option><option>Exam</option><option>Project</option><option>Reading</option><option>Other</option></select>
+              <button class="btn btn-primary" type="submit">＋ Add task</button>
+            </form>
+          </div>
+          <div class="glass rounded-2xl p-5 md:p-6">
+            <div class="flex flex-wrap gap-3 items-center justify-between mb-5">
+              <h2 class="text-xl font-bold">Your tasks</h2>
+              <input id="taskSearch" class="field max-w-xs" placeholder="Search tasks or subjects…" />
+            </div>
+            <div class="flex flex-wrap gap-2 mb-5">
+              <select id="statusFilter" class="field !w-auto text-sm"><option value="all">All statuses</option><option value="open">To do</option><option value="done">Completed</option></select>
+              <select id="subjectFilter" class="field !w-auto text-sm"><option value="all">All subjects</option></select>
+              <select id="priorityFilter" class="field !w-auto text-sm"><option value="all">All priorities</option><option>High</option><option>Medium</option><option>Low</option></select>
+              <select id="sortTasks" class="field !w-auto text-sm"><option value="due">Sort: due date</option><option value="priority">Sort: priority</option><option value="newest">Sort: newest</option></select>
+            </div>
+            <div id="taskList" class="space-y-3"></div>
+          </div>
+        </section>
 
-    </main>
+        <!-- TIMETABLE -->
+        <section id="view-timetable" class="view hidden space-y-5">
+          <div class="glass rounded-2xl p-5 md:p-6">
+            <h2 class="text-xl font-bold">Add to your timetable</h2>
+            <p class="muted text-sm mt-1 mb-5">Add college classes or your own study sessions. Use the dropdowns to organize your week.</p>
+            <form id="sessionForm" class="grid md:grid-cols-2 xl:grid-cols-3 gap-3">
+              <input id="sessionSubject" class="field" required placeholder="Subject / session name" />
+              <select id="sessionType" class="field"><option value="college">College class</option><option value="study">Personal study</option><option value="other">Other activity</option></select>
+              <select id="sessionDay" class="field"><option>Monday</option><option>Tuesday</option><option>Wednesday</option><option>Thursday</option><option>Friday</option><option>Saturday</option><option>Sunday</option></select>
+              <input id="sessionRoom" class="field" placeholder="Room / location (optional)" />
+              <label class="text-sm muted">Start time<input id="sessionStart" class="field mt-2" type="time" required /></label>
+              <label class="text-sm muted">End time<input id="sessionEnd" class="field mt-2" type="time" required /></label>
+              <select id="sessionReminder" class="field"><option value="0">No reminder</option><option value="5">Remind 5 minutes before</option><option value="10">Remind 10 minutes before</option><option value="15">Remind 15 minutes before</option><option value="30">Remind 30 minutes before</option></select>
+              <input id="sessionNotes" class="field" placeholder="Notes / study goal (optional)" />
+              <button class="btn btn-primary" type="submit">＋ Add to timetable</button>
+            </form>
+          </div>
+          <div class="glass rounded-2xl p-5 md:p-6">
+            <div class="flex flex-wrap justify-between gap-3 items-center mb-5">
+              <div><h2 class="text-xl font-bold">Weekly timetable</h2><p class="text-sm muted">Only you can see your schedule after database security is configured.</p></div>
+              <select id="scheduleFilter" class="field !w-auto"><option value="all">All sessions</option><option value="college">College only</option><option value="study">Study only</option><option value="other">Other activities</option></select>
+            </div>
+            <div id="weekGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-3"></div>
+          </div>
+        </section>
+
+        <!-- STUDY PLANNER -->
+        <section id="view-planner" class="view hidden space-y-5">
+          <div class="glass rounded-2xl p-5 md:p-6">
+            <h2 class="text-xl font-bold">Plan a study session</h2>
+            <p class="muted text-sm mt-1 mb-5">Reserve time for one subject and one goal.</p>
+            <form id="plannerForm" class="grid md:grid-cols-2 xl:grid-cols-3 gap-3">
+              <input id="planSubject" class="field" required placeholder="Subject" />
+              <select id="planDay" class="field"><option>Monday</option><option>Tuesday</option><option>Wednesday</option><option>Thursday</option><option>Friday</option><option>Saturday</option><option>Sunday</option></select>
+              <input id="planStart" class="field" type="time" required />
+              <input id="planEnd" class="field" type="time" required />
+              <select id="planReminder" class="field"><option value="0">No reminder</option><option value="5">5 minutes before</option><option value="10">10 minutes before</option><option value="15">15 minutes before</option><option value="30">30 minutes before</option></select>
+              <input id="planGoal" class="field" placeholder="Goal (e.g. solve 10 problems)" />
+              <button class="btn btn-primary" type="submit">＋ Plan session</button>
+            </form>
+          </div>
+          <div class="glass rounded-2xl p-5 md:p-6">
+            <h2 class="text-xl font-bold mb-4">Your planned sessions</h2>
+            <div id="plannerList" class="space-y-3"></div>
+          </div>
+        </section>
+
+        <!-- REMINDERS -->
+        <section id="view-reminders" class="view hidden space-y-5">
+          <div class="glass rounded-2xl p-6">
+            <div class="text-3xl mb-3">🔔</div>
+            <h2 class="text-xl font-bold">Your reminders</h2>
+            <p class="muted mt-2">Enable browser notifications to receive reminders while StudyBuddy is open. Browser and device settings may affect delivery.</p>
+            <button id="notifyBtn2" class="btn btn-primary mt-5">Enable browser notifications</button>
+            <p id="notificationStatus" class="text-sm muted mt-3"></p>
+          </div>
+          <div class="glass rounded-2xl p-5 md:p-6">
+            <h2 class="text-xl font-bold mb-4">Upcoming reminders</h2>
+            <div id="reminderList" class="space-y-3"></div>
+          </div>
+        </section>
+
+        <!-- PRODUCTIVITY -->
+        <section id="view-productivity" class="view hidden space-y-5">
+          <div class="glass rounded-2xl p-6">
+            <h2 class="text-2xl font-bold">Focus timer</h2>
+            <p class="muted mt-2">Choose a duration, put distractions aside, and focus on one thing.</p>
+            <div class="flex flex-wrap gap-2 mt-5">
+              <button class="pill active" data-minutes="25">25 min</button>
+              <button class="pill" data-minutes="45">45 min</button>
+              <button class="pill" data-minutes="60">60 min</button>
+            </div>
+            <div id="timerDisplay" class="text-6xl font-extrabold tracking-tight text-violet-200 my-7">25:00</div>
+            <div class="flex gap-3">
+              <button id="timerStart" class="btn btn-primary">▶ Start</button>
+              <button id="timerReset" class="btn btn-secondary">↻ Reset</button>
+            </div>
+            <p id="timerMessage" class="muted text-sm mt-4">Ready when you are.</p>
+          </div>
+          <div class="glass rounded-2xl p-6">
+            <h2 class="text-xl font-bold">Your progress</h2>
+            <div class="grid sm:grid-cols-3 gap-4 mt-5">
+              <div><div class="muted text-sm">Tasks completed</div><div id="prodCompleted" class="statnum">0</div></div>
+              <div><div class="muted text-sm">Total tasks</div><div id="prodTotal" class="statnum">0</div></div>
+              <div><div class="muted text-sm">Scheduled sessions</div><div id="prodSessions" class="statnum">0</div></div>
+            </div>
+          </div>
+        </section>
+
+        <footer class="muted text-xs mt-10 pb-4">
+          StudyBuddy · Your time, your plan.
+          <span id="syncStatus" class="float-right">Connecting…</span>
+        </footer>
+      </main>
+    </div>
   </div>
 
-  <script>
-    // Sample tasks are shown only when no saved tasks exist.
-    const sampleTasks = [
-      {
-        id: 1,
-        title: "Revise Laplace transforms",
-        subject: "Engineering Mathematics",
-        dueDate: "",
-        completed: false
-      },
-      {
-        id: 2,
-        title: "Complete digital electronics notes",
-        subject: "Digital Electronics",
-        dueDate: "",
-        completed: false
-      },
-      {
-        id: 3,
-        title: "Practice KCL and KVL problems",
-        subject: "Network Analysis",
-        dueDate: "",
-        completed: true
-      }
-    ];
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const days = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
+  const titles = {
+    dashboard:["Your dashboard","A clear view of your study week."],
+    academics:["Academics & tasks","Keep assignments, exams, and deadlines organized."],
+    timetable:["Your timetable","Build a weekly schedule that fits your life."],
+    planner:["Study planner","Protect time for focused learning."],
+    reminders:["Your reminders","Keep upcoming classes and study sessions in view."],
+    productivity:["Productivity","Focus on one thing at a time."]
+  };
 
-    // Load saved tasks from localStorage, or use the sample tasks.
-    function loadTasks() {
-      try {
-        const savedTasks = localStorage.getItem("studybuddy-tasks");
-        if (savedTasks !== null) {
-          const parsedTasks = JSON.parse(savedTasks);
-          if (Array.isArray(parsedTasks)) return parsedTasks;
+  let supabaseClient = null, currentUser = null, authMode = "login";
+  let tasks = [], sessions = [];
+  let timerDuration = 25 * 60, timerRemaining = timerDuration, timerInterval = null, timerRunning = false;
+  const notified = new Set();
+
+  /* THEME SWITCHER */
+  function applyTheme(theme) {
+    const isLight = theme === "light";
+    document.body.classList.toggle("light-theme", isLight);
+    $("themeBtn").textContent = isLight ? "🌙 Dark mode" : "☀️ Light mode";
+    $("themeBtn").title = isLight ? "Switch to dark mode" : "Switch to light mode";
+  }
+
+  let savedTheme = "dark";
+  try {
+    savedTheme = localStorage.getItem("studybuddy-theme") || "dark";
+  } catch (error) {
+    console.log("Theme preference storage unavailable.");
+  }
+
+  applyTheme(savedTheme);
+
+  $("themeBtn").addEventListener("click", () => {
+    const newTheme = document.body.classList.contains("light-theme") ? "dark" : "light";
+    applyTheme(newTheme);
+    try {
+      localStorage.setItem("studybuddy-theme", newTheme);
+    } catch (error) {
+      console.log("Could not save theme preference.");
+    }
+  });
+
+  function configReady() {
+    return typeof window.SUPABASE_URL === "string" &&
+      window.SUPABASE_URL.startsWith("https://") &&
+      typeof window.SUPABASE_PUBLISHABLE_KEY === "string" &&
+      window.SUPABASE_PUBLISHABLE_KEY.length > 10 &&
+      window.supabase &&
+      typeof window.supabase.createClient === "function";
+  }
+
+  function escapeHtml(s) {
+    return String(s ?? "").replace(/[&<>"']/g, c => ({
+      "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+    }[c]));
+  }
+
+  function showAuthMessage(msg, error=false) {
+    $("authMessage").textContent = msg;
+    $("authMessage").className = "text-sm min-h-5 " + (error ? "text-rose-300" : "text-emerald-300");
+  }
+
+  function setAuthMode(mode) {
+    authMode = mode;
+    const signup = mode === "signup";
+    $("loginTab").className = "btn flex-1 " + (signup ? "btn-secondary" : "btn-primary");
+    $("signupTab").className = "btn flex-1 " + (signup ? "btn-primary" : "btn-secondary");
+    $("authTitle").textContent = signup ? "Create your account" : "Welcome back";
+    $("authSubtitle").textContent = signup ? "Create your own private study space." : "Log in to open your personal study space.";
+    $("authSubmit").textContent = signup ? "Create my account" : "Log in to StudyBuddy";
+    $("nameWrap").classList.toggle("hidden", !signup);
+    $("password").autocomplete = signup ? "new-password" : "current-password";
+    showAuthMessage("");
+  }
+
+  $("loginTab").addEventListener("click", () => setAuthMode("login"));
+  $("signupTab").addEventListener("click", () => setAuthMode("signup"));
+
+  async function handleAuth(e) {
+    e.preventDefault();
+    if (!supabaseClient) {
+      showAuthMessage("Connection not ready. Check supabase-config.js and reload.", true);
+      return;
+    }
+
+    const email = $("email").value.trim();
+    const password = $("password").value;
+    $("authSubmit").disabled = true;
+    $("authSubmit").textContent = "Please wait…";
+
+    try {
+      if (authMode === "signup") {
+        const name = $("displayName").value.trim();
+        const { data, error } = await supabaseClient.auth.signUp({
+          email,
+          password,
+          options: { data: { display_name: name || email.split("@")[0] } }
+        });
+        if (error) throw error;
+
+        if (data.session) {
+          showAuthMessage("Account created. Opening your workspace…");
+        } else {
+          showAuthMessage("Account created. If email confirmation is enabled, confirm your email, then log in.");
         }
-      } catch (error) {
-        console.error("Could not load saved tasks:", error);
+      } else {
+        const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+        if (error) throw error;
       }
-
-      return sampleTasks.map(task => ({ ...task }));
+    } catch (err) {
+      showAuthMessage(err.message || "Could not sign in.", true);
+    } finally {
+      $("authSubmit").disabled = false;
+      $("authSubmit").textContent = authMode === "signup" ? "Create my account" : "Log in to StudyBuddy";
     }
+  }
 
-    let tasks = loadTasks();
+  $("authForm").addEventListener("submit", handleAuth);
 
-    // Save tasks so they remain after a page refresh.
-    function saveTasks() {
-      try {
-        localStorage.setItem("studybuddy-tasks", JSON.stringify(tasks));
-        return true;
-      } catch (error) {
-        console.error("Could not save tasks:", error);
-        showMessage("Could not save data in this browser.", true);
-        return false;
-      }
+  async function loadRows(table) {
+    const { data, error } = await supabaseClient.from(table).select("*").order("created_at", { ascending: false });
+    if (error) throw error;
+    return data || [];
+  }
+
+  async function insertRow(table, row) {
+    const { data, error } = await supabaseClient.from(table).insert({
+      ...row,
+      user_id: currentUser.id
+    }).select().single();
+    if (error) throw error;
+    return data;
+  }
+
+  async function updateRow(table, id, patch) {
+    const { error } = await supabaseClient.from(table).update(patch).eq("id", id).eq("user_id", currentUser.id);
+    if (error) throw error;
+  }
+
+  async function deleteRow(table, id) {
+    const { error } = await supabaseClient.from(table).delete().eq("id", id).eq("user_id", currentUser.id);
+    if (error) throw error;
+  }
+
+  function setSync(msg, bad=false) {
+    $("syncStatus").textContent = msg;
+    $("syncStatus").className = "float-right text-xs " + (bad ? "text-rose-300" : "muted");
+  }
+
+  async function refreshData() {
+    try {
+      [tasks, sessions] = await Promise.all([loadRows("tasks"), loadRows("sessions")]);
+      renderAll();
+      setSync("Synced to your account");
+    } catch (err) {
+      setSync("Database setup needed", true);
+      alert("Could not load your data: " + err.message + "\n\nMake sure you ran the SQL setup in Supabase SQL Editor.");
     }
+  }
 
-    // Display a short message below the form.
-    function showMessage(message, isError = false) {
-      const messageElement = document.getElementById("form-message");
-      messageElement.textContent = message;
-      messageElement.className = isError
-        ? "text-sm mt-3 text-red-400"
-        : "text-sm mt-3 text-emerald-400";
-    }
+  function showApp(user) {
+    currentUser = user;
+    $("authScreen").classList.add("hidden");
+    $("appScreen").classList.remove("hidden");
+    const meta = user.user_metadata || {};
+    $("userName").textContent = meta.display_name || user.email.split("@")[0];
+    $("userEmail").textContent = user.email || "";
+    $("dateLabel").textContent = new Intl.DateTimeFormat(undefined, {
+      weekday:"long", month:"long", day:"numeric", year:"numeric"
+    }).format(new Date());
+    refreshData();
+  }
 
-    // Format the date for easier reading.
-    function formatDate(dateString) {
-      if (!dateString) return "No due date";
+  async function logout() {
+    if (supabaseClient) await supabaseClient.auth.signOut();
+    currentUser = null;
+    tasks = [];
+    sessions = [];
+    $("appScreen").classList.add("hidden");
+    $("authScreen").classList.remove("hidden");
+    $("password").value = "";
+  }
 
-      const parts = dateString.split("-");
-      if (parts.length !== 3) return "No due date";
+  $("logoutBtn").addEventListener("click", logout);
 
-      return `${parts[2]}/${parts[1]}/${parts[0]}`;
-    }
+  function goto(view) {
+    document.querySelectorAll(".view").forEach(el => el.classList.add("hidden"));
+    $("view-" + view).classList.remove("hidden");
+    document.querySelectorAll(".navbtn").forEach(el => el.classList.toggle("active", el.dataset.view === view));
+    $("pageTitle").textContent = titles[view][0];
+    $("pageSubtitle").textContent = titles[view][1];
+  }
 
-    // Update the summary cards and progress bar.
-    function renderSummary() {
-      const completed = tasks.filter(task => task.completed).length;
-      const pending = tasks.length - completed;
-      const percentage = tasks.length
-        ? Math.round((completed / tasks.length) * 100)
-        : 0;
+  document.querySelectorAll(".navbtn").forEach(b => b.addEventListener("click", () => goto(b.dataset.view)));
+  document.querySelectorAll("[data-goto]").forEach(b => b.addEventListener("click", () => goto(b.dataset.goto)));
 
-      document.getElementById("total-count").textContent = tasks.length;
-      document.getElementById("completed-count").textContent = completed;
-      document.getElementById("pending-count").textContent = pending;
-      document.getElementById("progress-label").textContent = percentage + "%";
-      document.getElementById("progress-bar").style.width = percentage + "%";
-    }
-
-    // Display the tasks based on the selected filter.
-    function renderTasks() {
-      const container = document.getElementById("task-container");
-      const filter = document.getElementById("task-filter").value;
-
-      const visibleTasks = tasks.filter(task => {
-        if (filter === "pending") return !task.completed;
-        if (filter === "completed") return task.completed;
-        return true;
+  $("taskForm").addEventListener("submit", async e => {
+    e.preventDefault();
+    try {
+      await insertRow("tasks", {
+        title:$("taskTitle").value.trim(),
+        subject:$("taskSubject").value.trim(),
+        due_date:$("taskDue").value,
+        priority:$("taskPriority").value,
+        task_type:$("taskType").value,
+        completed:false
       });
+      e.target.reset();
+      await refreshData();
+    } catch(err) {
+      alert("Could not add task: " + err.message);
+    }
+  });
 
-      container.replaceChildren();
-
-      if (visibleTasks.length === 0) {
-        const emptyMessage = document.createElement("p");
-        emptyMessage.className = "text-slate-400 py-8 text-center";
-        emptyMessage.textContent = "No tasks here yet. Add a task to get started!";
-        container.appendChild(emptyMessage);
-        return;
-      }
-
-      visibleTasks.forEach(task => {
-        const row = document.createElement("div");
-        row.className = "task-row py-4 flex flex-wrap items-center gap-3";
-
-        const checkbox = document.createElement("input");
-        checkbox.type = "checkbox";
-        checkbox.checked = task.completed;
-        checkbox.className = "!w-5 !h-5 accent-violet-400 cursor-pointer";
-        checkbox.setAttribute("aria-label", "Mark task completed");
-        checkbox.addEventListener("change", () => toggleTask(task.id));
-
-        const details = document.createElement("div");
-        details.className = "flex-1 min-w-40";
-
-        const title = document.createElement("p");
-        title.className = task.completed
-          ? "font-semibold text-slate-500 line-through"
-          : "font-semibold";
-        title.textContent = task.title;
-
-        const metadata = document.createElement("p");
-        metadata.className = "text-sm text-slate-400 mt-1";
-        metadata.textContent =
-          (task.subject || "General") + " · Due: " + formatDate(task.dueDate);
-
-        details.append(title, metadata);
-
-        const status = document.createElement("span");
-        status.className = task.completed
-          ? "text-emerald-300 bg-emerald-400/10 px-3 py-1 rounded-full text-xs"
-          : "text-amber-200 bg-amber-300/10 px-3 py-1 rounded-full text-xs";
-        status.textContent = task.completed ? "Completed" : "Pending";
-
-        const deleteButton = document.createElement("button");
-        deleteButton.type = "button";
-        deleteButton.className =
-          "text-red-300 hover:bg-red-400/10 rounded-lg px-3 py-2 text-sm";
-        deleteButton.textContent = "Delete";
-        deleteButton.setAttribute("aria-label", "Delete " + task.title);
-        deleteButton.addEventListener("click", () => deleteTask(task.id));
-
-        row.append(checkbox, details, status, deleteButton);
-        container.appendChild(row);
+  $("sessionForm").addEventListener("submit", async e => {
+    e.preventDefault();
+    if ($("sessionEnd").value <= $("sessionStart").value) {
+      alert("End time must be later than start time.");
+      return;
+    }
+    try {
+      await insertRow("sessions", {
+        subject:$("sessionSubject").value.trim(),
+        session_type:$("sessionType").value,
+        day_name:$("sessionDay").value,
+        room:$("sessionRoom").value.trim(),
+        start_time:$("sessionStart").value,
+        end_time:$("sessionEnd").value,
+        reminder_minutes:Number($("sessionReminder").value),
+        notes:$("sessionNotes").value.trim()
       });
+      e.target.reset();
+      await refreshData();
+    } catch(err) {
+      alert("Could not add timetable item: " + err.message);
+    }
+  });
+
+  $("plannerForm").addEventListener("submit", async e => {
+    e.preventDefault();
+    if ($("planEnd").value <= $("planStart").value) {
+      alert("End time must be later than start time.");
+      return;
+    }
+    try {
+      await insertRow("sessions", {
+        subject:$("planSubject").value.trim(),
+        session_type:"study",
+        day_name:$("planDay").value,
+        room:"",
+        start_time:$("planStart").value,
+        end_time:$("planEnd").value,
+        reminder_minutes:Number($("planReminder").value),
+        notes:$("planGoal").value.trim()
+      });
+      e.target.reset();
+      await refreshData();
+      goto("planner");
+    } catch(err) {
+      alert("Could not plan session: " + err.message);
+    }
+  });
+
+  $("taskSearch").addEventListener("input", renderTasks);
+  ["statusFilter","subjectFilter","priorityFilter","sortTasks"].forEach(id => $(id).addEventListener("change", renderTasks));
+  $("scheduleFilter").addEventListener("change", renderSchedule);
+
+  async function toggleTask(task) {
+    try {
+      await updateRow("tasks", task.id, { completed:!task.completed });
+      await refreshData();
+    } catch(err) {
+      alert("Could not update task: " + err.message);
+    }
+  }
+
+  async function removeTask(task) {
+    if (!confirm("Delete this task?")) return;
+    try {
+      await deleteRow("tasks", task.id);
+      await refreshData();
+    } catch(err) {
+      alert("Could not delete task: " + err.message);
+    }
+  }
+
+  async function removeSession(session) {
+    if (!confirm("Delete this timetable item?")) return;
+    try {
+      await deleteRow("sessions", session.id);
+      await refreshData();
+    } catch(err) {
+      alert("Could not delete session: " + err.message);
+    }
+  }
+
+  function taskCard(t) {
+    const priorityClass = t.priority === "High" ? "text-rose-300" : t.priority === "Low" ? "text-emerald-300" : "text-amber-200";
+    const overdue = !t.completed && t.due_date && t.due_date < new Date().toISOString().slice(0,10);
+
+    return `<div class="taskrow flex gap-3 items-start">
+      <button class="mt-1 w-5 h-5 rounded-full border ${t.completed ? "bg-violet-500 border-violet-400" : "border-slate-500"}" data-toggle-task="${t.id}" aria-label="Toggle complete">${t.completed ? "✓" : ""}</button>
+      <div class="min-w-0 flex-1">
+        <div class="font-semibold ${t.completed ? "line-through text-slate-500" : ""}">${escapeHtml(t.title)}</div>
+        <div class="text-xs muted mt-1">${escapeHtml(t.subject)} · ${escapeHtml(t.task_type || "Task")} · Due ${escapeHtml(t.due_date || "not set")}</div>
+        <div class="flex gap-2 flex-wrap mt-2"><span class="text-xs ${priorityClass}">${escapeHtml(t.priority || "Medium")} priority</span>${overdue ? '<span class="text-xs text-rose-300">Overdue</span>' : ""}</div>
+      </div>
+      <button class="text-slate-500 hover:text-rose-300" data-delete-task="${t.id}" aria-label="Delete task">✕</button>
+    </div>`;
+  }
+
+  function renderTasks() {
+    const q = ($("taskSearch").value || "").toLowerCase();
+    const status = $("statusFilter").value;
+    const subject = $("subjectFilter").value;
+    const priority = $("priorityFilter").value;
+
+    let list = tasks.filter(t =>
+      (!q || (t.title+" "+t.subject+" "+(t.task_type||"")).toLowerCase().includes(q)) &&
+      (status === "all" || (status === "done" ? t.completed : !t.completed)) &&
+      (subject === "all" || t.subject === subject) &&
+      (priority === "all" || t.priority === priority)
+    );
+
+    const pr = {High:0,Medium:1,Low:2};
+    if ($("sortTasks").value === "priority") list.sort((a,b)=>(pr[a.priority]??1)-(pr[b.priority]??1));
+    else if ($("sortTasks").value === "newest") list.sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
+    else list.sort((a,b)=>(a.due_date||"9999").localeCompare(b.due_date||"9999"));
+
+    $("taskList").innerHTML = list.length
+      ? list.map(taskCard).join("")
+      : '<p class="muted text-sm py-6 text-center">No tasks match this filter. Add a task to get started.</p>';
+
+    $("upcomingTasks").innerHTML = tasks.filter(t=>!t.completed)
+      .sort((a,b)=>(a.due_date||"9999").localeCompare(b.due_date||"9999"))
+      .slice(0,4).map(taskCard).join("") ||
+      '<p class="muted text-sm">No open tasks. Nice work!</p>';
+
+    const subjects = [...new Set(tasks.map(t=>t.subject).filter(Boolean))].sort();
+    const previous = $("subjectFilter").value;
+    $("subjectFilter").innerHTML = '<option value="all">All subjects</option>' +
+      subjects.map(s=>`<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join("");
+    $("subjectFilter").value = subjects.includes(previous) ? previous : "all";
+
+    document.querySelectorAll("[data-toggle-task]").forEach(b => b.addEventListener("click", () => {
+      const t = tasks.find(x=>x.id===b.dataset.toggleTask);
+      if (t) toggleTask(t);
+    }));
+
+    document.querySelectorAll("[data-delete-task]").forEach(b => b.addEventListener("click", () => {
+      const t = tasks.find(x=>x.id===b.dataset.deleteTask);
+      if (t) removeTask(t);
+    }));
+  }
+
+  function timeShort(t) { return String(t || "").slice(0,5); }
+
+  function sessionCard(s) {
+    const typeLabel = s.session_type === "college" ? "College" : s.session_type === "study" ? "Study" : "Other";
+    return `<div class="session">
+      <div class="flex justify-between gap-2">
+        <span class="font-semibold">${escapeHtml(s.subject)}</span>
+        <button class="text-slate-400 hover:text-rose-300" data-delete-session="${s.id}" aria-label="Delete session">✕</button>
+      </div>
+      <div class="mt-1">${escapeHtml(timeShort(s.start_time))}–${escapeHtml(timeShort(s.end_time))}</div>
+      <div class="text-violet-200 mt-1">${typeLabel}${s.room ? " · "+escapeHtml(s.room) : ""}</div>
+      ${s.notes ? `<div class="muted mt-1">${escapeHtml(s.notes)}</div>` : ""}
+      ${Number(s.reminder_minutes)>0 ? `<div class="muted mt-1">🔔 ${Number(s.reminder_minutes)} min reminder</div>` : ""}
+    </div>`;
+  }
+
+  function renderSchedule() {
+    const filter = $("scheduleFilter").value;
+    const filtered = sessions.filter(s=>filter==="all" || s.session_type===filter);
+
+    $("weekGrid").innerHTML = days.map(day =>
+      `<div class="daycol">
+        <div class="font-semibold text-sm">${day}</div>
+        <div class="text-xs muted">${filtered.filter(s=>s.day_name===day).length} item(s)</div>
+        ${filtered.filter(s=>s.day_name===day)
+          .sort((a,b)=>(a.start_time||"").localeCompare(b.start_time||""))
+          .map(sessionCard).join("") || '<div class="text-xs muted mt-4">No plans</div>'}
+      </div>`
+    ).join("");
+
+    const shortDays = days.map(d =>
+      `<div class="daycol">
+        <div class="text-xs muted">${d.slice(0,3)}</div>
+        <div class="text-lg font-bold mt-2">${sessions.filter(s=>s.day_name===d).length}</div>
+        <div class="text-[10px] muted">sessions</div>
+        ${sessions.filter(s=>s.day_name===d).slice(0,1)
+          .map(s=>`<div class="text-xs text-violet-200 mt-2 truncate">${escapeHtml(s.subject)}</div>`).join("")}
+      </div>`
+    ).join("");
+
+    $("weekPreview").innerHTML = shortDays;
+
+    $("plannerList").innerHTML = sessions.filter(s=>s.session_type==="study")
+      .sort((a,b)=>days.indexOf(a.day_name)-days.indexOf(b.day_name) || (a.start_time||"").localeCompare(b.start_time||""))
+      .map(sessionCard).join("") ||
+      '<p class="muted text-sm">No study sessions planned yet.</p>';
+
+    document.querySelectorAll("[data-delete-session]").forEach(b => b.addEventListener("click", () => {
+      const s = sessions.find(x=>x.id===b.dataset.deleteSession);
+      if (s) removeSession(s);
+    }));
+
+    renderReminders();
+  }
+
+  function renderReminders() {
+    const items = sessions.filter(s=>Number(s.reminder_minutes)>0)
+      .sort((a,b)=>days.indexOf(a.day_name)-days.indexOf(b.day_name) || (a.start_time||"").localeCompare(b.start_time||""));
+
+    $("reminderList").innerHTML = items.map(s =>
+      `<div class="taskrow">
+        <div class="font-semibold">${escapeHtml(s.subject)}</div>
+        <div class="text-sm muted mt-1">${escapeHtml(s.day_name)} · ${escapeHtml(timeShort(s.start_time))} · reminder ${Number(s.reminder_minutes)} minutes before</div>
+      </div>`
+    ).join("") ||
+    '<p class="muted text-sm">No reminders scheduled. Add a session with a reminder to see it here.</p>';
+  }
+
+  function renderAll() {
+    const completed = tasks.filter(t=>t.completed).length;
+    const total = tasks.length;
+    const pct = total ? Math.round(completed/total*100) : 0;
+
+    $("statCompleted").textContent = `${completed}/${total}`;
+    $("statOpen").textContent = total-completed;
+    $("statSessions").textContent = sessions.length;
+    $("progressPct").textContent = pct+"%";
+    $("progressRing").style.setProperty("--progress", (pct*3.6)+"deg");
+    $("sidebarProgress").style.width = pct+"%";
+    $("sidebarProgressText").textContent = pct+"% tasks completed";
+    $("prodCompleted").textContent = completed;
+    $("prodTotal").textContent = total;
+    $("prodSessions").textContent = sessions.length;
+
+    renderTasks();
+    renderSchedule();
+  }
+
+  async function enableNotifications() {
+    if (!("Notification" in window)) {
+      alert("This browser does not support notifications.");
+      return;
     }
 
-    // Refresh every part of the dashboard.
-    function renderApp() {
-      renderSummary();
-      renderTasks();
+    const permission = await Notification.requestPermission();
+    $("notificationStatus").textContent = permission === "granted"
+      ? "Notifications enabled. Keep StudyBuddy open for reminders."
+      : "Notifications were not enabled. You can change this in browser settings.";
+
+    if (permission === "granted") {
+      $("notifyBtn").textContent = "✓ Reminders enabled";
+      $("notifyBtn2").textContent = "✓ Reminders enabled";
     }
+  }
 
-    // Add a new task after validating the title.
-    document.getElementById("task-form").addEventListener("submit", event => {
-      event.preventDefault();
+  $("notifyBtn").addEventListener("click", enableNotifications);
+  $("notifyBtn2").addEventListener("click", enableNotifications);
 
-      const titleInput = document.getElementById("task-title");
-      const subjectInput = document.getElementById("task-subject");
-      const dateInput = document.getElementById("task-date");
-      const title = titleInput.value.trim();
+  function checkReminders() {
+    if (!currentUser || !("Notification" in window) || Notification.permission !== "granted") return;
 
-      if (!title) {
-        showMessage("Please enter a task title.", true);
-        titleInput.focus();
-        return;
+    const now = new Date();
+    const today = days[(now.getDay()+6)%7];
+    const current = now.getHours()*60+now.getMinutes();
+
+    sessions.forEach(s => {
+      const reminder = Number(s.reminder_minutes || 0);
+      if (!reminder || s.day_name !== today) return;
+
+      const [h,m] = String(s.start_time).split(":").map(Number);
+      const start = h*60+m;
+      const key = `${currentUser.id}:${s.id}:${now.toDateString()}`;
+
+      if (current >= start-reminder && current <= start && !notified.has(key)) {
+        new Notification("StudyBuddy reminder", {
+          body: `${s.subject} starts at ${timeShort(s.start_time)}${s.room ? " · "+s.room : ""}`
+        });
+        notified.add(key);
       }
-
-      const newTask = {
-        id: Date.now(),
-        title,
-        subject: subjectInput.value.trim(),
-        dueDate: dateInput.value,
-        completed: false
-      };
-
-      tasks.unshift(newTask);
-      saveTasks();
-      renderApp();
-
-      event.target.reset();
-      showMessage("Task added successfully!");
-      titleInput.focus();
     });
+  }
 
-    // Switch a task between pending and completed.
-    function toggleTask(taskId) {
-      tasks = tasks.map(task =>
-        task.id === taskId
-          ? { ...task, completed: !task.completed }
-          : task
-      );
+  setInterval(checkReminders, 30000);
 
-      saveTasks();
-      renderApp();
+  document.querySelectorAll("[data-minutes]").forEach(b => b.addEventListener("click", () => {
+    document.querySelectorAll("[data-minutes]").forEach(x=>x.classList.toggle("active",x===b));
+    timerDuration = Number(b.dataset.minutes)*60;
+    resetTimer();
+  }));
+
+  function paintTimer() {
+    const m = Math.floor(timerRemaining/60), s = timerRemaining%60;
+    $("timerDisplay").textContent = `${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;
+  }
+
+  function resetTimer() {
+    clearInterval(timerInterval);
+    timerRunning = false;
+    timerRemaining = timerDuration;
+    paintTimer();
+    $("timerStart").textContent = "▶ Start";
+    $("timerMessage").textContent = "Ready when you are.";
+  }
+
+  $("timerStart").addEventListener("click", () => {
+    if (timerRunning) {
+      clearInterval(timerInterval);
+      timerRunning = false;
+      $("timerStart").textContent = "▶ Resume";
+      $("timerMessage").textContent = "Timer paused.";
+      return;
     }
 
-    // Delete a task after confirmation.
-    function deleteTask(taskId) {
-      const task = tasks.find(item => item.id === taskId);
-      if (!task) return;
+    timerRunning = true;
+    $("timerStart").textContent = "Ⅱ Pause";
+    $("timerMessage").textContent = "Focus time. You’ve got this.";
 
-      if (!confirm(`Delete "${task.title}"?`)) return;
+    timerInterval = setInterval(() => {
+      timerRemaining--;
+      paintTimer();
 
-      tasks = tasks.filter(item => item.id !== taskId);
-      saveTasks();
-      renderApp();
-      showMessage("Task deleted.");
+      if (timerRemaining <= 0) {
+        clearInterval(timerInterval);
+        timerRunning = false;
+        $("timerStart").textContent = "▶ Start";
+        $("timerMessage").textContent = "Session complete. Take a short break!";
+
+        if ("Notification" in window && Notification.permission === "granted") {
+          new Notification("StudyBuddy", { body:"Focus session complete. Great work!" });
+        }
+      }
+    }, 1000);
+  });
+
+  $("timerReset").addEventListener("click", resetTimer);
+
+  async function init() {
+    if (!configReady()) {
+      showAuthMessage("Configuration missing: check supabase-config.js and make sure its constants use window.SUPABASE_URL and window.SUPABASE_PUBLISHABLE_KEY.", true);
+      return;
     }
 
-    // Let the New Task button jump to the form.
-    function focusTaskForm() {
-      document.getElementById("add-task").scrollIntoView({
-        behavior: "smooth"
-      });
-      document.getElementById("task-title").focus({ preventScroll: true });
-    }
+    supabaseClient = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_PUBLISHABLE_KEY);
+    const { data: { session } } = await supabaseClient.auth.getSession();
 
-    document.getElementById("task-filter").addEventListener("change", renderTasks);
+    if (session?.user) showApp(session.user);
 
-    // Show the initial dashboard.
-    renderApp();
-  </script>
+    supabaseClient.auth.onAuthStateChange((_event, session) => {
+      if (session?.user && !currentUser) {
+        showApp(session.user);
+      } else if (!session?.user && currentUser) {
+        currentUser = null;
+        tasks = [];
+        sessions = [];
+        $("appScreen").classList.add("hidden");
+        $("authScreen").classList.remove("hidden");
+      }
+    });
+  }
+
+  init();
+})();
+</script>
 </body>
 </html>
